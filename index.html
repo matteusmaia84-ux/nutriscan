@@ -94,11 +94,17 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ============================================================================================
-        // PASSO 3.4 DO GUIA: COLE A CONFIGURAÇÃO DO SEU FIREBASE AQUI
-        const firebaseConfig = undefined; // SUBSTITUA 'undefined' PELO SEU CÓDIGO DE CONFIGURAÇÃO DO FIREBASE
-        // ============================================================================================
-
+       // ============================================================================================
+// PASSO 3.4 DO GUIA: COLE A CONFIGURAÇÃO DO SEU FIREBASE AQUI
+const firebaseConfig = {
+  apiKey: "AIzaSyAuoQMjvRndLl1NtbhKnuvsBehtqmHW3Lo",
+  authDomain: "nutriscan-app-d587e.firebaseapp.com",
+  projectId: "nutriscan-app-d587e",
+  storageBucket: "nutriscan-app-d587e.appspot.com",
+  messagingSenderId: "749495182083",
+  appId: "1:749495182083:web:085d9580786d5c3e723f36"
+}; // <--- ESTA É A PARTE QUE FALTAVA! O '};' fecha o bloco.
+// ============================================================================================
         // Inicializa o Firebase e o Firestore (o "depósito")
         let db;
 
@@ -305,4 +311,5 @@
     </script>
 </body>
 </html>
+
 
