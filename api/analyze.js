@@ -1,12 +1,12 @@
-import fetch from 'node-fetch';
-
+// Versão simplificada que usa o 'fetch' nativo do Node.js 22, eliminando a necessidade de dependências externas.
 export default async function handler(request, response) {
     if (request.method !== 'POST') {
         return response.status(405).json({ error: 'Método não permitido' });
     }
 
     try {
-        const { image: base64ImageData } = request.body;
+        // A forma moderna e correta de ler o corpo da requisição na Vercel
+        const { image: base64ImageData } = await request.json();
 
         if (!base64ImageData) {
             return response.status(400).json({ error: 'Nenhuma imagem fornecida' });
@@ -41,6 +41,7 @@ export default async function handler(request, response) {
         const apiKey = process.env.GEMINI_API_KEY;
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
+        // Usando o 'fetch' que já vem embutido no ambiente da Vercel
         const geminiResponse = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -51,7 +52,10 @@ export default async function handler(request, response) {
 
         if (!geminiResponse.ok || !result.candidates || !result.candidates[0].content) {
              console.error("Gemini API Error:", JSON.stringify(result, null, 2));
-             return response.status(502).json({ error: "Falha ao obter análise do serviço de IA." });
+             return response.status(502).json({ 
+                error: "Falha ao obter análise do serviço de IA.",
+                details: result
+             });
         }
         
         const jsonText = result.candidates[0].content.parts[0].text
@@ -59,11 +63,12 @@ export default async function handler(request, response) {
         
         const data = JSON.parse(jsonText);
         
-        return response.status(200).json(data);
+        // Retorna a resposta JSON para o navegador do usuário
+        return response.json(data);
 
     } catch (error) {
         console.error('Erro no backend:', error);
-        return response.status(500).json({ error: 'Ocorreu um erro interno no servidor.' });
+        return response.status(500).json({ error: 'Ocorreu um erro interno no servidor.', details: error.message });
     }
 }
 
