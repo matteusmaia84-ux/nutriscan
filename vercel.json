@@ -1,7 +1,15 @@
 {
-  "functions": {
-    "api/analyze.js": {
-      "runtime": "nodejs22.x"
+  "builds": [
+    {
+      "src": "api/analyze.js",
+      "use": "@vercel/node"
     }
-  }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/nutriscan-final.html"
+    }
+  ]
 }
+
