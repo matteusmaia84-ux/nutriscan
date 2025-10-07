@@ -51,7 +51,7 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold">Resumo de Hoje</h2>
                     <button id="openGoalsModalBtn" class="p-2 text-gray-500 hover:text-teal-600 rounded-full hover:bg-gray-100" title="Definir Metas">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="currentColor" viewBox="0 0 20 20"><path d="M13.34 3.03a1 1 0 01.63.94v1.513a1 1 0 01-1.53.848L10 4.414l-2.44 1.917a1 1 0 01-1.53-.848V3.97a1 1 0 01.63-.94A40.012 40.012 0 0110 3c.68 0 1.35.02 2.01.06a39.98 39.98 0 011.33.03zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zm1 3a1 1 0 100 2h8a1 1 0 100-2H5zm1 3a1 1 0 100 2h6a1 1 0 100-2H6z"></path></svg>
                     </button>
                 </div>
                 <div id="goalsProgress" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -246,6 +246,7 @@
         ui.logoutButton.addEventListener('click', () => signOut(auth));
         ui.uploadButton.addEventListener('click', () => ui.imageUpload.click());
         ui.imageUpload.addEventListener('change', handleImageUpload);
+        ui.saveButton.addEventListener('click', saveAnalysis);
         ui.openGoalsModalBtn.addEventListener('click', openGoalsModal);
         ui.cancelGoalsBtn.addEventListener('click', () => ui.goalsModal.classList.add('hidden'));
         ui.saveGoalsBtn.addEventListener('click', saveGoals);
@@ -417,16 +418,178 @@
         }
 
         async function saveManualEntry() {
-            //...código para guardar entrada manual...
+            if (!currentUser) return;
+            const mealName = ui.manualInputs.name.value.trim() || "Refeição Manual";
+            const notes = ui.manualInputs.notes.value.trim() || "";
+            const total_nutrition = {
+                calories: parseInt(ui.manualInputs.calories.value) || 0,
+                protein: parseInt(ui.manualInputs.protein.value) || 0,
+                carbs: parseInt(ui.manualInputs.carbs.value) || 0,
+                fat: parseInt(ui.manualInputs.fat.value) || 0,
+            };
+
+            const manualAnalysis = {
+                total_nutrition,
+                identified_foods: [{ name: mealName, grams: 0, notes, ...total_nutrition }],
+                isManualEntry: true,
+                createdAt: new Date(),
+                userId: currentUser.uid,
+            };
+
+            try {
+                await addDoc(collection(db, "users", currentUser.uid, "analyses"), manualAnalysis);
+                ui.manualEntryModal.classList.add('hidden');
+            } catch(error) {
+                console.error("Erro ao guardar entrada manual: ", error);
+                showError("Não foi possível guardar a entrada manual.");
+            }
+        }
+        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                resetUI();
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    ui.imagePreview.src = e.target.result;
+                    ui.imagePreviewContainer.classList.remove('hidden');
+                    analyzeImage(file);
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
         }
 
-        function handleImageUpload(event) {
-            //...código para lidar com o upload de imagem...
+        async function analyzeImage(file) {
+            resetUI();
+            ui.loading.classList.remove('hidden');
+            try {
+                const base64Image = await toBase64(file);
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64Image })
+                });
+                const data = await response.json();
+                if (!response.ok) { throw new Error(data.error || 'Ocorreu um erro desconhecido.'); }
+                currentAnalysis = data;
+                displayResults(data);
+            } catch (error) { showError(error.message); } finally { ui.loading.classList.add('hidden'); }
+        }
+
+        function displayResults(data) {
+            ui.totalCalories.textContent = data.total_nutrition.calories;
+            ui.totalProtein.textContent = data.total_nutrition.protein;
+            ui.totalCarbs.textContent = data.total_nutrition.carbs;
+            ui.totalFat.textContent = data.total_nutrition.fat;
+
+            ui.foodList.innerHTML = '';
+            data.identified_foods.forEach(food => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center bg-gray-50 p-3 rounded-lg';
+                li.innerHTML = `<div><p class="font-semibold">${food.name}</p><p class="text-sm text-gray-500">${food.grams}g</p></div><div class="text-right"><p class="font-medium">${food.calories} kcal</p><p class="text-xs text-gray-400">${food.protein}g Prot. &middot; ${food.carbs}g Carb. &middot; ${food.fat}g Gord.</p></div>`;
+                ui.foodList.appendChild(li);
+            });
+            ui.results.classList.remove('hidden');
+        }
+
+        async function saveAnalysis() {
+            if (!currentAnalysis || !currentUser) return;
+            try {
+                const analysisToSave = { ...currentAnalysis, createdAt: new Date(), userId: currentUser.uid };
+                await addDoc(collection(db, "users", currentUser.uid, "analyses"), analysisToSave);
+                ui.saveMessage.classList.remove('hidden');
+                setTimeout(() => {
+                    ui.saveMessage.classList.add('hidden');
+                    resetUI();
+                    ui.imagePreviewContainer.classList.add('hidden');
+                }, 2000);
+            } catch (error) { console.error("Erro ao guardar a análise: ", error); showError("Não foi possível guardar a análise."); }
+        }
+
+        async function confirmDelete() {
+            if (!docIdToDelete || !currentUser) return;
+            try {
+                await deleteDoc(doc(db, "users", currentUser.uid, "analyses", docIdToDelete));
+            } catch (error) { console.error("Erro ao excluir: ", error); showError("Não foi possível excluir a análise."); } finally {
+                ui.deleteModal.classList.add('hidden');
+                docIdToDelete = null;
+            }
+        }
+
+        function openEditModal(docId) {
+            const analysis = analysesCache.get(docId);
+            if (!analysis) return;
+            ui.editFormContainer.innerHTML = `<div id="editFoodList" class="space-y-3">${analysis.identified_foods.map((food, index) => `<div class="grid grid-cols-12 gap-2 items-center border p-2 rounded-lg" data-index="${index}"><input type="text" value="${food.name}" class="col-span-12 md:col-span-3 p-2 border rounded" placeholder="Nome do Alimento"><input type="number" value="${food.grams}" class="col-span-4 md:col-span-2 p-2 border rounded" placeholder="g"><input type="number" value="${food.calories}" class="col-span-4 md:col-span-2 p-2 border rounded" placeholder="kcal"><input type="number" value="${food.protein}" class="col-span-4 md:col-span-2 p-2 border rounded" placeholder="Prot."><input type="number" value="${food.carbs}" class="col-span-6 md:col-span-1 p-2 border rounded" placeholder="Carb."><input type="number" value="${food.fat}" class="col-span-6 md:col-span-1 p-2 border rounded" placeholder="Gord."><button class="remove-food-btn col-span-1 text-red-500 hover:text-red-700 text-2xl" title="Remover Alimento">&times;</button></div>`).join('')}</div><button id="addFoodBtn" class="mt-4 text-sm text-teal-600 hover:text-teal-800 font-semibold">+ Adicionar Alimento</button>`;
+            ui.editFormContainer.querySelector('#addFoodBtn').addEventListener('click', addFoodToEditForm);
+            ui.editFormContainer.querySelectorAll('.remove-food-btn').forEach(btn => btn.addEventListener('click', (e) => e.target.parentElement.remove()));
+            ui.editModal.classList.remove('hidden');
+        }
+
+        function addFoodToEditForm() {
+            const div = document.createElement('div');
+            div.className = 'grid grid-cols-12 gap-2 items-center border p-2 rounded-lg';
+            div.innerHTML = `<input type="text" class="col-span-12 md:col-span-3 p-2 border rounded" placeholder="Nome do Alimento"><input type="number" class="col-span-4 md:col-span-2 p-2 border rounded" placeholder="g"><input type="number" class="col-span-4 md:col-span-2 p-2 border rounded" placeholder="kcal"><input type="number" class="col-span-4 md:col-span-2 p-2 border rounded" placeholder="Prot."><input type="number" value="" class="col-span-6 md:col-span-1 p-2 border rounded" placeholder="Carb."><input type="number" value="" class="col-span-6 md:col-span-1 p-2 border rounded" placeholder="Gord."><button class="remove-food-btn col-span-1 text-red-500 hover:text-red-700 text-2xl" title="Remover Alimento">&times;</button>`;
+            div.querySelector('.remove-food-btn').addEventListener('click', (e) => e.target.parentElement.remove());
+            document.getElementById('editFoodList').appendChild(div);
+        }
+
+        async function saveEditedAnalysis() {
+            if (!docIdToEdit || !currentUser) return;
+            const originalAnalysis = analysesCache.get(docIdToEdit);
+            const updatedData = { 
+                identified_foods: [],
+                total_nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                createdAt: originalAnalysis.createdAt,
+                userId: currentUser.uid,
+                isManualEntry: originalAnalysis.isManualEntry || false,
+            };
+            const foodRows = ui.editFormContainer.querySelectorAll('#editFoodList > div');
+            foodRows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const food = {
+                    name: inputs[0].value || "Sem nome",
+                    grams: parseFloat(inputs[1].value) || 0,
+                    calories: parseFloat(inputs[2].value) || 0,
+                    protein: parseFloat(inputs[3].value) || 0,
+                    carbs: parseFloat(inputs[4].value) || 0,
+                    fat: parseFloat(inputs[5].value) || 0,
+                };
+                updatedData.identified_foods.push(food);
+                updatedData.total_nutrition.calories += food.calories;
+                updatedData.total_nutrition.protein += food.protein;
+                updatedData.total_nutrition.carbs += food.carbs;
+                updatedData.total_nutrition.fat += food.fat;
+            });
+
+            try {
+                await updateDoc(doc(db, "users", currentUser.uid, "analyses", docIdToEdit), updatedData);
+            } catch (error) { console.error("Erro ao atualizar: ", error); showError("Não foi possível guardar as alterações."); } finally {
+                ui.editModal.classList.add('hidden');
+                docIdToEdit = null;
+            }
         }
         
-        // ...todas as outras funções (analyzeImage, saveAnalysis, confirmDelete, openEditModal, saveEditedAnalysis, etc.)
-        // estão aqui, completas e funcionais, mas foram omitidas para focar na estrutura principal.
-        
+        function resetUI() {
+            ui.results.classList.add('hidden');
+            ui.errorMessage.classList.add('hidden');
+            if (ui.saveMessage) ui.saveMessage.classList.add('hidden');
+            if (ui.foodList) ui.foodList.innerHTML = '';
+            currentAnalysis = null;
+        }
+
+        function showError(message) {
+            ui.errorText.textContent = message;
+            ui.errorMessage.classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
