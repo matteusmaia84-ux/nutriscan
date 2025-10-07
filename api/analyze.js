@@ -1,11 +1,12 @@
+// Versão final que usa `request.body`, o método que o ambiente Vercel espera.
 export default async function handler(request, response) {
     if (request.method !== 'POST') {
         return response.status(405).json({ error: 'Método não permitido' });
     }
 
     try {
-        // A forma moderna e correta de ler o corpo da requisição na Vercel
-        const { image: base64ImageData } = await request.json();
+        // A correção está aqui: voltamos a usar `request.body`
+        const { image: base64ImageData } = request.body;
 
         if (!base64ImageData) {
             return response.status(400).json({ error: 'Nenhuma imagem fornecida' });
@@ -40,7 +41,6 @@ export default async function handler(request, response) {
         const apiKey = process.env.GEMINI_API_KEY;
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-        // Usando o 'fetch' que já vem embutido no ambiente da Vercel
         const geminiResponse = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -62,7 +62,6 @@ export default async function handler(request, response) {
         
         const data = JSON.parse(jsonText);
         
-        // Retorna a resposta JSON para o navegador do usuário
         return response.json(data);
 
     } catch (error) {
