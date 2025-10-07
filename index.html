@@ -3,256 +3,304 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NutriScan - Análise Nutricional de Refeições</title>
+    <title>NutriScan - Análise Nutricional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .upload-area { border: 2px dashed #d1d5db; transition: border-color 0.3s, background-color 0.3s; }
-        .upload-area.drag-over { border-color: #3b82f6; background-color: #eff6ff; }
-        .loader { border-top-color: #3b82f6; animation: spin 1s linear infinite; }
+        .loader { border-top-color: #3498db; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .progress-bar { background: linear-gradient(to right, #a78bfa, #8b5cf6, #7c3aed); transition: width 0.5s ease-in-out; }
+        .nutrient-card { transition: transform 0.2s; }
+        .nutrient-card:hover { transform: translateY(-5px); }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 flex items-center justify-center min-h-screen">
+<body class="bg-gray-50 text-gray-800">
 
-    <main class="w-full max-w-2xl mx-auto p-4 md:p-8">
-        <div class="bg-white rounded-2xl shadow-lg p-6 md:p-10">
-            <header class="text-center mb-8">
-                <h1 class="text-4xl font-bold text-gray-900 tracking-tight">NutriScan</h1>
-                <p class="text-gray-500 mt-2">Fotografe sua refeição e descubra seu valor nutricional.</p>
-            </header>
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-teal-600">NutriScan</h1>
+            <p class="text-gray-600 mt-2">Fotografe sua refeição e descubra seu valor nutricional.</p>
+        </header>
 
-            <!-- Upload Section -->
-            <section id="uploadSection">
-                <div id="uploadArea" class="upload-area rounded-xl p-8 text-center cursor-pointer">
+        <main>
+            <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+                <div class="flex flex-col items-center">
                     <input type="file" id="imageUpload" class="hidden" accept="image/*">
-                    <div class="flex flex-col items-center justify-center space-y-4">
-                        <svg class="w-16 h-16 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-2.39.23-4.286 2.26-4.286 4.77 0 2.67 2.21 4.845 4.931 4.845a4.932 4.932 0 004.93-4.931 2.31 2.31 0 012.14-2.14 4.932 4.932 0 004.93-4.93 4.932 4.932 0 00-4.93-4.93 2.31 2.31 0 01-2.14-2.14A4.932 4.932 0 0012 2.25c-2.72 0-4.931 2.21-4.931 4.93a2.31 2.31 0 01-1.242-1.005zM12 16.5h.008v.008H12v-.008z" /><path stroke-linecap="round" stroke-linejoin="round" d="M3 18.75V16.5m18 2.25V16.5m-9 3.75h.008v.008H12v-.008z" /></svg>
-                        <p class="text-lg font-medium text-gray-700">Arraste e solte uma imagem ou <span class="text-blue-600">clique aqui</span></p>
-                        <p class="text-sm text-gray-500">PNG, JPG, ou WEBP</p>
+                    <button id="uploadButton" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-md mb-4">
+                        Escolher Imagem
+                    </button>
+                    <div id="imagePreviewContainer" class="hidden w-full max-w-md h-64 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-100">
+                        <img id="imagePreview" src="" alt="Pré-visualização da imagem" class="max-h-full max-w-full rounded-md">
                     </div>
                 </div>
-                <div id="imagePreviewContainer" class="mt-6 hidden"><p class="text-center font-medium mb-2">Sua imagem:</p><img id="imagePreview" src="" alt="Pré-visualização da imagem" class="max-h-64 mx-auto rounded-lg shadow-md"></div>
-            </section>
+            </div>
 
-            <!-- Loading Section -->
-            <section id="loadingSection" class="hidden text-center py-10">
-                <div class="loader w-12 h-12 rounded-full border-4 border-gray-200 mx-auto"></div>
-                <p class="mt-4 text-lg font-medium text-gray-600">Analisando sua refeição...</p>
-                <p class="text-sm text-gray-500">Isso pode levar alguns segundos.</p>
-            </section>
-            
-            <!-- Error Section -->
-            <section id="errorSection" class="hidden text-center py-10 bg-red-50 p-6 rounded-lg">
-                 <svg class="w-12 h-12 text-red-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.007H12v-.007z" /></svg>
-                <p id="errorMessage" class="mt-4 text-lg font-medium text-red-700">Ocorreu um erro.</p>
-                <button id="tryAgainButton" class="mt-4 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition">Tentar Novamente</button>
-            </section>
+            <div id="loading" class="hidden text-center my-8">
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-24 w-24 mx-auto"></div>
+                <p class="mt-4 text-gray-600 font-semibold">Analisando sua refeição...</p>
+            </div>
 
-            <!-- Results Section -->
-            <section id="resultsSection" class="hidden">
+            <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+                <strong class="font-bold">Falha na análise:</strong>
+                <span class="block sm:inline" id="errorText"></span>
+            </div>
+
+            <div id="results" class="hidden">
                 <h2 class="text-2xl font-bold text-center mb-6">Análise Nutricional</h2>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-purple-100 text-purple-800 p-4 rounded-lg text-center"><p class="text-sm font-medium">Calorias</p><p id="totalCalories" class="text-2xl font-bold">0</p><p class="text-xs">kcal</p></div>
-                    <div class="bg-green-100 text-green-800 p-4 rounded-lg text-center"><p class="text-sm font-medium">Proteínas</p><p id="totalProtein" class="text-2xl font-bold">0</p><p class="text-xs">gramas</p></div>
-                    <div class="bg-blue-100 text-blue-800 p-4 rounded-lg text-center"><p class="text-sm font-medium">Carboidratos</p><p id="totalCarbs" class="text-2xl font-bold">0</p><p class="text-xs">gramas</p></div>
-                    <div class="bg-yellow-100 text-yellow-800 p-4 rounded-lg text-center"><p class="text-sm font-medium">Gorduras</p><p id="totalFat" class="text-2xl font-bold">0</p><p class="text-xs">gramas</p></div>
+                    <div class="nutrient-card bg-white p-4 rounded-xl shadow-md text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Calorias</h3>
+                        <p id="totalCalories" class="text-3xl font-bold text-orange-500">0</p>
+                        <span class="text-xs text-gray-400">kcal</span>
+                    </div>
+                    <div class="nutrient-card bg-white p-4 rounded-xl shadow-md text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Proteínas</h3>
+                        <p id="totalProtein" class="text-3xl font-bold text-sky-500">0</p>
+                        <span class="text-xs text-gray-400">gramas</span>
+                    </div>
+                    <div class="nutrient-card bg-white p-4 rounded-xl shadow-md text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Carboidratos</h3>
+                        <p id="totalCarbs" class="text-3xl font-bold text-lime-500">0</p>
+                        <span class="text-xs text-gray-400">gramas</span>
+                    </div>
+                    <div class="nutrient-card bg-white p-4 rounded-xl shadow-md text-center">
+                        <h3 class="text-sm font-medium text-gray-500">Gorduras</h3>
+                        <p id="totalFat" class="text-3xl font-bold text-amber-500">0</p>
+                        <span class="text-xs text-gray-400">gramas</span>
+                    </div>
                 </div>
-                <div><h3 class="text-xl font-semibold mb-4">Alimentos Identificados</h3><ul id="foodList" class="space-y-4"></ul></div>
-                <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
-                     <button id="saveButton" class="w-full sm:w-auto bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>Salvar Análise</button>
-                    <button id="analyzeAnotherButton" class="w-full sm:w-auto bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-800 transition">Analisar Outra</button>
+
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">Alimentos Identificados</h3>
+                    <ul id="foodList" class="space-y-4"></ul>
+                    <button id="saveButton" class="mt-6 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-md">Salvar Análise</button>
+                    <p id="saveMessage" class="hidden text-center mt-4 text-green-600 font-semibold">Análise salva com sucesso!</p>
                 </div>
-            </section>
-        </div>
-    </main>
+            </div>
 
-    <!-- Scripts do Firebase - Adicionados para o Passo 3 -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+            <!-- Seção do Histórico -->
+            <div id="historySection" class="mt-12">
+                <h2 class="text-2xl font-bold text-center mb-6">Histórico de Análises</h2>
+                <div id="historyList" class="space-y-4">
+                    <!-- O histórico será inserido aqui pelo JavaScript -->
+                </div>
+            </div>
+        </main>
+    </div>
 
-    <script>
-        // COLE A CONFIGURAÇÃO DO SEU FIREBASE AQUI (do Passo 3.3 do guia)
-        // Exemplo:
-        // const firebaseConfig = {
-        //   apiKey: "AIza...",
-        //   authDomain: "seu-projeto.firebaseapp.com",
-        //   projectId: "seu-projeto",
-        //   storageBucket: "seu-projeto.appspot.com",
-        //   messagingSenderId: "12345...",
-        //   appId: "1:12345..."
-        // };
+    <script type="module">
+        // Importa as ferramentas necessárias do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // Inicializa o Firebase
+        // ============================================================================================
+        // PASSO 3.4 DO GUIA: COLE A CONFIGURAÇÃO DO SEU FIREBASE AQUI
+        const firebaseConfig = undefined; // SUBSTITUA 'undefined' PELO SEU CÓDIGO DE CONFIGURAÇÃO DO FIREBASE
+        // ============================================================================================
+
+        // Inicializa o Firebase e o Firestore (o "depósito")
         let db;
-        try {
-            if (typeof firebaseConfig !== 'undefined') {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-            } else {
-                console.warn("Configuração do Firebase não encontrada. O botão 'Salvar' não funcionará.");
+
+        if (firebaseConfig) {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+            } catch (e) {
+                console.error("Erro na configuração do Firebase:", e);
+                showError("A configuração do Firebase é inválida. Verifique o console.");
             }
-        } catch (e) {
-            console.error("Erro ao inicializar o Firebase: ", e);
+        } else {
+            console.warn("AVISO: A configuração do Firebase não foi encontrada. A funcionalidade de salvar e histórico não funcionará. Por favor, complete o Passo 3.4 do guia.");
         }
 
-        const uploadSection = document.getElementById('uploadSection');
-        const loadingSection = document.getElementById('loadingSection');
-        const resultsSection = document.getElementById('resultsSection');
-        const errorSection = document.getElementById('errorSection');
-        const uploadArea = document.getElementById('uploadArea');
+
+        let currentAnalysis = null;
+
+        const uploadButton = document.getElementById('uploadButton');
         const imageUpload = document.getElementById('imageUpload');
         const imagePreviewContainer = document.getElementById('imagePreviewContainer');
         const imagePreview = document.getElementById('imagePreview');
-        const tryAgainButton = document.getElementById('tryAgainButton');
-        const analyzeAnotherButton = document.getElementById('analyzeAnotherButton');
-        const saveButton = document.getElementById('saveButton');
+        const loading = document.getElementById('loading');
         const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const results = document.getElementById('results');
+        const totalCalories = document.getElementById('totalCalories');
+        const totalProtein = document.getElementById('totalProtein');
+        const totalCarbs = document.getElementById('totalCarbs');
+        const totalFat = document.getElementById('totalFat');
+        const foodList = document.getElementById('foodList');
+        const saveButton = document.getElementById('saveButton');
+        const saveMessage = document.getElementById('saveMessage');
+        const historyList = document.getElementById('historyList');
 
-        let currentAnalysisData = null; // Variável para guardar o resultado atual
+        uploadButton.addEventListener('click', () => imageUpload.click());
+        imageUpload.addEventListener('change', handleImageUpload);
+        saveButton.addEventListener('click', saveAnalysis);
 
-        uploadArea.addEventListener('click', () => imageUpload.click());
-        imageUpload.addEventListener('change', (event) => {
+        function handleImageUpload(event) {
             const file = event.target.files[0];
-            if (file) handleImage(file);
-        });
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, preventDefaults, false);
-        });
-        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-        ['dragenter', 'dragover'].forEach(eventName => { uploadArea.addEventListener(eventName, () => uploadArea.classList.add('drag-over'), false); });
-        ['dragleave', 'drop'].forEach(eventName => { uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('drag-over'), false); });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            const file = e.dataTransfer.files[0];
-            if (file) handleImage(file);
-        });
-        
-        tryAgainButton.addEventListener('click', resetUI);
-        analyzeAnotherButton.addEventListener('click', resetUI);
-        
-        saveButton.addEventListener('click', async () => {
-            if (!db) {
-                alert("O banco de dados não está configurado. Não é possível salvar.");
-                return;
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                    analyzeImage(file);
+                }
+                reader.readAsDataURL(file);
             }
-            if (!currentAnalysisData) {
-                alert("Nenhuma análise para salvar.");
-                return;
-            }
-
-            saveButton.textContent = 'Salvando...';
-            saveButton.disabled = true;
-
-            try {
-                // Adiciona a análise ao banco de dados Firestore
-                await db.collection("analises").add({
-                    ...currentAnalysisData,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp() // Adiciona data e hora
-                });
-
-                saveButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> Salvo com sucesso!`;
-
-            } catch (error) {
-                console.error("Erro ao salvar no Firestore: ", error);
-                saveButton.textContent = 'Erro ao salvar';
-                alert("Houve um problema ao salvar sua análise.");
-                setTimeout(() => {
-                    saveButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> Salvar Análise`;
-                    saveButton.disabled = false;
-                }, 3000);
-            }
-        });
-        
-        function handleImage(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                imagePreview.src = e.target.result;
-                imagePreviewContainer.classList.remove('hidden');
-                const base64Image = e.target.result.split(',')[1];
-                analyzeImage(base64Image);
-            };
-            reader.readAsDataURL(file);
         }
 
-        async function analyzeImage(base64ImageData) {
-            showSection(loadingSection);
-            const apiUrl = '/api/analyze';
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        async function analyzeImage(file) {
+            resetUI();
+            loading.classList.remove('hidden');
+
             try {
-                const response = await fetch(apiUrl, {
+                const base64Image = await toBase64(file);
+                
+                const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64ImageData })
+                    body: JSON.stringify({ image: base64Image })
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error || `Erro: ${response.status}`);
+                    throw new Error(errorData.error || 'Ocorreu um erro desconhecido.');
                 }
+
                 const data = await response.json();
-                currentAnalysisData = data; // Guarda o resultado para poder salvar
+                currentAnalysis = data;
                 displayResults(data);
 
             } catch (error) {
-                console.error('Error during analysis:', error);
-                showError(`Falha na análise: ${error.message}`);
+                showError(error.message);
+            } finally {
+                loading.classList.add('hidden');
             }
         }
-        
+
         function displayResults(data) {
-            document.getElementById('totalCalories').textContent = Math.round(data.total_nutrition.calories);
-            document.getElementById('totalProtein').textContent = Math.round(data.total_nutrition.protein);
-            document.getElementById('totalCarbs').textContent = Math.round(data.total_nutrition.carbs);
-            document.getElementById('totalFat').textContent = Math.round(data.total_nutrition.fat);
-            
-            const foodList = document.getElementById('foodList');
+            totalCalories.textContent = data.total_nutrition.calories;
+            totalProtein.textContent = data.total_nutrition.protein;
+            totalCarbs.textContent = data.total_nutrition.carbs;
+            totalFat.textContent = data.total_nutrition.fat;
+
             foodList.innerHTML = '';
+            data.identified_foods.forEach(food => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center bg-gray-50 p-3 rounded-lg';
+                li.innerHTML = `
+                    <div>
+                        <p class="font-semibold">${food.name}</p>
+                        <p class="text-sm text-gray-500">${food.grams}g</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium">${food.calories} kcal</p>
+                        <p class="text-xs text-gray-400">
+                            ${food.protein}g Prot. &middot; ${food.carbs}g Carb. &middot; ${food.fat}g Gord.
+                        </p>
+                    </div>
+                `;
+                foodList.appendChild(li);
+            });
 
-            if (data.identified_foods && data.identified_foods.length > 0) {
-                data.identified_foods.forEach(food => {
-                    const li = document.createElement('li');
-                    li.className = 'bg-gray-100 p-4 rounded-lg';
-                    li.innerHTML = `<div class="flex justify-between items-center mb-2"><h4 class="font-bold text-lg">${food.name}</h4><span class="text-sm font-medium text-gray-600">${Math.round(food.grams)}g</span></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-sm"><span><strong>${Math.round(food.calories)}</strong> kcal</span><span><strong>${Math.round(food.protein)}g</strong> Prot.</span><span><strong>${Math.round(food.carbs)}g</strong> Carb.</span><span><strong>${Math.round(food.fat)}g</strong> Gord.</span></div>`;
-                    foodList.appendChild(li);
-                });
-            } else {
-                 foodList.innerHTML = `<li class="text-center text-gray-500">Nenhum alimento específico pôde ser identificado.</li>`
+            results.classList.remove('hidden');
+        }
+
+        async function saveAnalysis() {
+            if (!currentAnalysis) return;
+            if (!db) {
+                showError("Funcionalidade de salvar desativada. Configure o Firebase primeiro.");
+                return;
             }
+
+            try {
+                // Adiciona a data e hora atual à análise antes de salvar
+                const analysisToSave = {
+                    ...currentAnalysis,
+                    createdAt: new Date()
+                };
+
+                // Salva a análise no "depósito" do Firestore
+                await addDoc(collection(db, "analyses"), analysisToSave);
+
+                saveMessage.classList.remove('hidden');
+                setTimeout(() => {
+                    saveMessage.classList.add('hidden');
+                }, 3000);
+            } catch (error) {
+                console.error("Erro ao salvar a análise: ", error);
+                showError("Não foi possível salvar a análise. Tente novamente.");
+            }
+        }
+
+        function fetchAndDisplayHistory() {
+            if (!db) return; // Não executa se o DB não estiver configurado
             
-            if(data.disclaimer) {
-                let disclaimerElement = foodList.parentElement.querySelector('.disclaimer');
-                if (!disclaimerElement) {
-                    disclaimerElement = document.createElement('p');
-                    disclaimerElement.className = "disclaimer text-xs text-gray-400 text-center mt-8";
-                    foodList.parentElement.appendChild(disclaimerElement);
+            const q = query(collection(db, "analyses"), orderBy("createdAt", "desc"));
+            
+            onSnapshot(q, (querySnapshot) => {
+                historyList.innerHTML = '';
+                if (querySnapshot.empty) {
+                    historyList.innerHTML = '<p class="text-center text-gray-500">Nenhuma análise salva ainda.</p>';
+                    return;
                 }
-                disclaimerElement.textContent = data.disclaimer;
-            }
+                querySnapshot.forEach((doc) => {
+                    const analysis = doc.data();
+                    const date = analysis.createdAt.toDate().toLocaleDateString('pt-BR', {
+                        day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
 
-            showSection(resultsSection);
-            saveButton.disabled = false;
-            saveButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> Salvar Análise`;
-        }
-
-        function showSection(section) {
-            [uploadSection, loadingSection, resultsSection, errorSection].forEach(s => s.classList.add('hidden'));
-            section.classList.remove('hidden');
-        }
-        
-        function showError(message) {
-            errorMessage.textContent = message || "Ocorreu um erro desconhecido.";
-            showSection(errorSection);
+                    const historyCard = document.createElement('div');
+                    historyCard.className = 'bg-white p-4 rounded-xl shadow-md';
+                    historyCard.innerHTML = `
+                        <div class="flex justify-between items-center mb-3">
+                            <p class="font-bold text-teal-700">Refeição de ${date}</p>
+                            <span class="text-lg font-bold text-orange-500">${analysis.total_nutrition.calories} kcal</span>
+                        </div>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            ${analysis.identified_foods.map(food => `
+                                <li class="flex justify-between">
+                                    <span>${food.name} (${food.grams}g)</span>
+                                    <span>${food.calories} kcal</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    `;
+                    historyList.appendChild(historyCard);
+                });
+            });
         }
 
         function resetUI() {
-            showSection(uploadSection);
-            imageUpload.value = '';
-            imagePreviewContainer.classList.add('hidden');
-            imagePreview.src = '';
-            currentAnalysisData = null;
+            results.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            saveMessage.classList.add('hidden');
+            foodList.innerHTML = '';
+            currentAnalysis = null;
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // Inicia o processo de buscar o histórico ou desativa as funcionalidades se o Firebase não estiver configurado
+        if (db) {
+            fetchAndDisplayHistory();
+        } else {
+            document.getElementById('saveButton').style.display = 'none';
+            document.getElementById('historySection').innerHTML = '<p class="text-center text-gray-500">A funcionalidade de histórico está desativada. Configure o Firebase para habilitá-la.</p>';
         }
     </script>
 </body>
