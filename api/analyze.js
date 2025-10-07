@@ -1,4 +1,3 @@
-// Versão simplificada que usa o 'fetch' nativo do Node.js 22, eliminando a necessidade de dependências externas.
 export default async function handler(request, response) {
     if (request.method !== 'POST') {
         return response.status(405).json({ error: 'Método não permitido' });
